@@ -1,8 +1,8 @@
 import argparse
+import os 
 import logging
 import shutil
 from datetime import datetime
-from os import path
 from urlparse import urlsplit
 
 import requests
@@ -28,6 +28,11 @@ logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
 
 
+DOWNLOAD_DIR = 'download'
+
+if not os.path.exists(DOWNLOAD_DIR):
+    os.mkdir(DOWNLOAD_DIR)
+
 def get_user_album_photos(tsm, user=None):
     page = 0
     while True:
@@ -46,8 +51,8 @@ def gen_file_path(file_uri):
     _, _, uri_path, _, _ = urlsplit(file_uri)
     _, _, name = uri_path.rpartition('/')
     name = '%s.jpg' % name
-    file_path = path.join('dl', name)
-    if path.exists(file_path):
+    file_path = os.path.join(DOWNLOAD_DIR, name)
+    if os.path.exists(file_path):
         return None
     return file_path
 
@@ -68,22 +73,28 @@ class FileDownloader:
 
     def save_photo(self, photo):
         file_uri = photo['photo']['fullUrl']
-        file_path = gen_file_path(file_uri)
         ts = long(photo['photo']['timestamp'])
+        try:
+            date = datetime.fromtimestamp(ts)
+            file_path = os.path.join(DOWNLOAD_DIR, date.strftime('%Y-%m-%d.jpg'))
+        
+        except NameError:
+            file_path = gen_file_path(file_uri)
+
         if not file_path:
             logger.debug('Skipping file %s', file_uri)
             return
         logger.debug('Downloading file %s', file_path)
         if self.download_file(file_uri, file_path):
             logger.debug('Done')
-            update_ts(file_path, ts)
+            update_date(file_path, date)
         else:
             logger.debug('Failed')
 
 
-def update_ts(file, timestamp):
+def update_date(file, date):
     ef = exiv_file(file)
-    ef.set_date_time(datetime.fromtimestamp(timestamp))
+    ef.set_date_time(date)
     ef.save_file()
 
 

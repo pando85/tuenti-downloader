@@ -76,7 +76,8 @@ class FileDownloader:
         ts = long(photo['photo']['timestamp'])
         try:
             date = datetime.fromtimestamp(ts)
-            file_path = os.path.join(DOWNLOAD_DIR, date.strftime('%Y-%m-%d.jpg'))
+            file_name = date.strftime('%Y-%m-%d') + ' %s.jpg' % str(ts)
+            file_path = os.path.join(DOWNLOAD_DIR, file_name)
         
         except NameError:
             file_path = gen_file_path(file_uri)
